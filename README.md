@@ -10,3 +10,4 @@ Using logitfit to generate an instrinsically interpretable logistic regression m
 
 Week 3
 Applying LIME to explain black-box image classifiers.
+Using SHAP to generate visuals to explain decisions about predictions of wine quality.
