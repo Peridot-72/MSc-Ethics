@@ -32,3 +32,30 @@ Continue to explore explainability techniques to use with machine learning and d
 > 
 > Wk3 HMa Using SHAP to understand decisions about wine quality\
 > [Wk3_HMa_Using_SHAP](https://github.com/Peridot-72/MSc-Ethics/blob/9076fcc5ea291c8cd87804cbaf4254a6b20b403e/Wk3_HMa_Using_SHAP.ipynb)
+
+Week 4\
+Cover the concept of Neuro-Symbolic AI and discuss how it is an emerging area for addressing explainability issues with machine learning and deep learning models.\
+Cover techniques for designing Neuro-Symbolic AI systems.
+
+Week 5\
+Dive deeper into the research in Neuro-Symbolic and Explainable AI and its various applications.
+
+Week 6\
+Explore the ethical issues raised by the recent advancement in AI in particular Foundational models and Generative AI such as Large Language models.\
+Consider the implications of Advanced AI systems and their applications.
+
+Week 7\
+Reading Week
+
+Week 8\
+Dive deeper into the various toolkit and frameworks available to support ethical consideration while building AI applications.\
+Consider the open challenges in this emerging problem.
+
+Week 9\
+Topics related to research paper writing, including literature review in preparation for the research paper.
+
+Week 10\
+Consider the safety and trustworthiness of AI systems.
+
+Week 11\
+Explore various legal issues and frameworks in building AI systems.
