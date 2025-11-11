@@ -1,0 +1,497 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Peridot-72/MSc-Ethics/blob/main/Week%208%20Challenge%20Task\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Week 7 Challenge Activity Detecting and mitigating age bias on credit decisions**\n",
+        "\n",
+        "The goal of this tutorial is to introduce the basic functionality of AI Fairness 360 to an interested developer who may not have a background in bias detection and mitigation."
+      ],
+      "metadata": {
+        "id": "QpwiYrf1byl_"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Biases and Machine Learning\n",
+        "A machine learning model makes predictions of an outcome for a particular instance. (Given an instance of a loan application, predict if the applicant will repay the loan.) The model makes these predictions based on a training dataset, where many other instances (other loan applications) and actual outcomes (whether they repaid) are provided. Thus, a machine learning algorithm will attempt to find patterns, or generalizations, in the training dataset to use when a prediction for a new instance is needed. (For example, one pattern it might discover is \"if a person has salary > USD 40K and has outstanding debt < USD 5, they will repay the loan\".) In many domains this technique, called supervised machine learning, has worked very well.\n",
+        "\n",
+        "However, sometimes the patterns that are found may not be desirable or may even be illegal. For example, a loan repay model may determine that age plays a significant role in the prediction of repayment because the training dataset happened to have better repayment for one age group than for another. This raises two problems: 1) the training dataset may not be representative of the true population of people of all age groups, and 2) even if it is representative, it is illegal to base any decision on a applicant's age, regardless of whether this is a good prediction based on historical data."
+      ],
+      "metadata": {
+        "id": "2q6FfGFR2ybH"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# AI Fairness 360\n",
+        "\n",
+        "AI Fairness 360 is designed to help address this problem with fairness measuring and bias mitigators. Fairness metrics can be used to check for bias in machine learning workflows. Bias mitigators can be used to overcome bias in the workflow to produce a more fair outcome.\n",
+        "\n",
+        "## Scenario\n",
+        "\n",
+        "The loan scenario describes an intuitive example of illegal bias. However, not all undesirable bias in machine learning is illegal it may also exist in more subtle ways. For example, a loan company may want a diverse portfolio of customers across all income levels, and thus, will deem it undesirable if they are making more loans to high income levels over low income levels. Although this is not illegal or unethical, it is undesirable for the company's strategy.\n",
+        "\n",
+        "As these two examples illustrate, a bias detection and/or mitigation toolkit needs to be tailored to the particular bias of interest. More specifically, it needs to know the attribute or attributes, called protected attributes, that are of interest: race is one example of a protected attribute and age is a second (Permissible Use of Age)."
+      ],
+      "metadata": {
+        "id": "aqRsgK3Ucvha"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Machine Learning Process\n",
+        "The Machine Learning Workflow To understand how bias can enter a machine learning model, we first review the basics of how a model is created in a supervised machine learning process.\n",
+        "\n",
+        "First, the process starts with a training dataset, which contains a sequence of instances, where each instance has two components: the features and the correct prediction for those features. Next, a machine learning algorithm is trained on this training dataset to produce a machine learning model. This generated model can be used to make a prediction when given a new instance. A second dataset with features and correct predictions, called a test dataset, is used to assess the accuracy of the model. Since this test dataset is the same format as the training dataset, a set of instances of features and prediction pairs, often these two datasets derive from the same initial dataset. A random partitioning algorithm is used to split the initial dataset into training and test datasets."
+      ],
+      "metadata": {
+        "id": "jXaomeT9Mjv3"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Process of Bias Creation\n",
+        "Bias can enter the system in any of the three steps above. The training data set may be biased in that its outcomes may be biased towards particular kinds of instances. The algorithm that creates the model may be biased in that it may generate models that are weighted towards particular features in the input. The test data set may be biased in that it has expectations on correct answers that may be biased. These three points in the machine learning process represent points for testing and mitigating bias. In AI Fairness 360 codebase, we call these points **pre-processing, in-processing, and post-processing**.\n",
+        "\n",
+        "We are now ready to utilize AI Fairness 360 (aif360) to detect and mitigate bias. We will use the German credit dataset, splitting it into a training and test dataset. We will look for bias in the creation of a machine learning model to predict if an applicant should be given credit based on various features from a typical credit application. **The protected attribute will be \"Age\", with \"1\" (older than or equal to 25) and \"0\" (younger than 25) being the values for the privileged and unprivileged groups, respectively.** For this first tutorial, we will check for bias in the initial training data, mitigate the bias, and recheck. More sophisticated machine learning workflows are given in the author tutorials and demo notebooks in the codebase."
+      ],
+      "metadata": {
+        "id": "uCVoAKYNM36u"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Here are the steps involved\n",
+        "\n",
+        "*   Step 1: Write import statements\n",
+        "*   Step 2: Set bias detection options, load dataset, and split between train and test\n",
+        "*   Step 3: Compute fairness metric on original training dataset\n",
+        "*   Step 4: Mitigate bias by transforming the original dataset\n",
+        "*   Step 5: Compute fairness metric on transformed training dataset"
+      ],
+      "metadata": {
+        "id": "bVdjpgYtcio2"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 1 Import Statements\n",
+        "As with any python program, the first step will be to import the necessary packages. Below we import several components from the aif360 package. We import the GermanDataset, metrics to check for bias, and classes related to the algorithm we will use to mitigate bias."
+      ],
+      "metadata": {
+        "id": "J2eFLBpVOwT0"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install aif360\n",
+        "!pip install \"aif360[Reductions,inFairness]\""
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "by1Gs_jPO-sf",
+        "outputId": "6ce5421e-70ff-48ff-eb0a-d9c8c4b261ab"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: aif360 in /usr/local/lib/python3.12/dist-packages (0.6.1)\n",
+            "Requirement already satisfied: numpy>=1.16 in /usr/local/lib/python3.12/dist-packages (from aif360) (2.0.2)\n",
+            "Requirement already satisfied: scipy>=1.2.0 in /usr/local/lib/python3.12/dist-packages (from aif360) (1.15.3)\n",
+            "Requirement already satisfied: pandas>=0.24.0 in /usr/local/lib/python3.12/dist-packages (from aif360) (2.2.2)\n",
+            "Requirement already satisfied: scikit-learn>=1.0 in /usr/local/lib/python3.12/dist-packages (from aif360) (1.6.1)\n",
+            "Requirement already satisfied: matplotlib in /usr/local/lib/python3.12/dist-packages (from aif360) (3.10.0)\n",
+            "Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360) (2.9.0.post0)\n",
+            "Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360) (2025.2)\n",
+            "Requirement already satisfied: tzdata>=2022.7 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360) (2025.2)\n",
+            "Requirement already satisfied: joblib>=1.2.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn>=1.0->aif360) (1.5.2)\n",
+            "Requirement already satisfied: threadpoolctl>=3.1.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn>=1.0->aif360) (3.6.0)\n",
+            "Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (1.3.3)\n",
+            "Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (0.12.1)\n",
+            "Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (4.60.1)\n",
+            "Requirement already satisfied: kiwisolver>=1.3.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (1.4.9)\n",
+            "Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (25.0)\n",
+            "Requirement already satisfied: pillow>=8 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (11.3.0)\n",
+            "Requirement already satisfied: pyparsing>=2.3.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360) (3.2.5)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil>=2.8.2->pandas>=0.24.0->aif360) (1.17.0)\n",
+            "Requirement already satisfied: aif360[Reductions,inFairness] in /usr/local/lib/python3.12/dist-packages (0.6.1)\n",
+            "Requirement already satisfied: numpy>=1.16 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (2.0.2)\n",
+            "Requirement already satisfied: scipy>=1.2.0 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (1.15.3)\n",
+            "Requirement already satisfied: pandas>=0.24.0 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (2.2.2)\n",
+            "Requirement already satisfied: scikit-learn>=1.0 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (1.6.1)\n",
+            "Requirement already satisfied: matplotlib in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (3.10.0)\n",
+            "Requirement already satisfied: fairlearn~=0.7 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (0.13.0)\n",
+            "Requirement already satisfied: skorch in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (1.2.0)\n",
+            "Requirement already satisfied: inFairness>=0.2.2 in /usr/local/lib/python3.12/dist-packages (from aif360[Reductions,inFairness]) (0.2.3)\n",
+            "Requirement already satisfied: narwhals>=1.14.0 in /usr/local/lib/python3.12/dist-packages (from fairlearn~=0.7->aif360[Reductions,inFairness]) (2.10.0)\n",
+            "Requirement already satisfied: POT>=0.8.0 in /usr/local/lib/python3.12/dist-packages (from inFairness>=0.2.2->aif360[Reductions,inFairness]) (0.9.6.post1)\n",
+            "Requirement already satisfied: torch>=1.13.0 in /usr/local/lib/python3.12/dist-packages (from inFairness>=0.2.2->aif360[Reductions,inFairness]) (2.8.0+cu126)\n",
+            "Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360[Reductions,inFairness]) (2.9.0.post0)\n",
+            "Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360[Reductions,inFairness]) (2025.2)\n",
+            "Requirement already satisfied: tzdata>=2022.7 in /usr/local/lib/python3.12/dist-packages (from pandas>=0.24.0->aif360[Reductions,inFairness]) (2025.2)\n",
+            "Requirement already satisfied: joblib>=1.2.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn>=1.0->aif360[Reductions,inFairness]) (1.5.2)\n",
+            "Requirement already satisfied: threadpoolctl>=3.1.0 in /usr/local/lib/python3.12/dist-packages (from scikit-learn>=1.0->aif360[Reductions,inFairness]) (3.6.0)\n",
+            "Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (1.3.3)\n",
+            "Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (0.12.1)\n",
+            "Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (4.60.1)\n",
+            "Requirement already satisfied: kiwisolver>=1.3.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (1.4.9)\n",
+            "Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (25.0)\n",
+            "Requirement already satisfied: pillow>=8 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (11.3.0)\n",
+            "Requirement already satisfied: pyparsing>=2.3.1 in /usr/local/lib/python3.12/dist-packages (from matplotlib->aif360[Reductions,inFairness]) (3.2.5)\n",
+            "Requirement already satisfied: tabulate>=0.7.7 in /usr/local/lib/python3.12/dist-packages (from skorch->aif360[Reductions,inFairness]) (0.9.0)\n",
+            "Requirement already satisfied: tqdm>=4.14.0 in /usr/local/lib/python3.12/dist-packages (from skorch->aif360[Reductions,inFairness]) (4.67.1)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil>=2.8.2->pandas>=0.24.0->aif360[Reductions,inFairness]) (1.17.0)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (3.20.0)\n",
+            "Requirement already satisfied: typing-extensions>=4.10.0 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (4.15.0)\n",
+            "Requirement already satisfied: setuptools in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (75.2.0)\n",
+            "Requirement already satisfied: sympy>=1.13.3 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (1.13.3)\n",
+            "Requirement already satisfied: networkx in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (3.5)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (3.1.6)\n",
+            "Requirement already satisfied: fsspec in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (2025.3.0)\n",
+            "Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.6.77 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.77)\n",
+            "Requirement already satisfied: nvidia-cuda-runtime-cu12==12.6.77 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.77)\n",
+            "Requirement already satisfied: nvidia-cuda-cupti-cu12==12.6.80 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.80)\n",
+            "Requirement already satisfied: nvidia-cudnn-cu12==9.10.2.21 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (9.10.2.21)\n",
+            "Requirement already satisfied: nvidia-cublas-cu12==12.6.4.1 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.4.1)\n",
+            "Requirement already satisfied: nvidia-cufft-cu12==11.3.0.4 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (11.3.0.4)\n",
+            "Requirement already satisfied: nvidia-curand-cu12==10.3.7.77 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (10.3.7.77)\n",
+            "Requirement already satisfied: nvidia-cusolver-cu12==11.7.1.2 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (11.7.1.2)\n",
+            "Requirement already satisfied: nvidia-cusparse-cu12==12.5.4.2 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.5.4.2)\n",
+            "Requirement already satisfied: nvidia-cusparselt-cu12==0.7.1 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (0.7.1)\n",
+            "Requirement already satisfied: nvidia-nccl-cu12==2.27.3 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (2.27.3)\n",
+            "Requirement already satisfied: nvidia-nvtx-cu12==12.6.77 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.77)\n",
+            "Requirement already satisfied: nvidia-nvjitlink-cu12==12.6.85 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (12.6.85)\n",
+            "Requirement already satisfied: nvidia-cufile-cu12==1.11.1.6 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (1.11.1.6)\n",
+            "Requirement already satisfied: triton==3.4.0 in /usr/local/lib/python3.12/dist-packages (from torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (3.4.0)\n",
+            "Requirement already satisfied: mpmath<1.4,>=1.1.0 in /usr/local/lib/python3.12/dist-packages (from sympy>=1.13.3->torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (1.3.0)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.12/dist-packages (from jinja2->torch>=1.13.0->inFairness>=0.2.2->aif360[Reductions,inFairness]) (3.0.3)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "SMDoD2C7bxak",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f10782c5-9789-4881-f69c-dfe0dabc1a81"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.12/dist-packages/inFairness/utils/ndcg.py:37: FutureWarning: We've integrated functorch into PyTorch. As the final step of the integration, `functorch.vmap` is deprecated as of PyTorch 2.0 and will be deleted in a future version of PyTorch >= 2.3. Please use `torch.vmap` instead; see the PyTorch 2.0 release notes and/or the `torch.func` migration guide for more details https://pytorch.org/docs/main/func.migrating.html\n",
+            "  vect_normalized_discounted_cumulative_gain = vmap(\n",
+            "/usr/local/lib/python3.12/dist-packages/inFairness/utils/ndcg.py:48: FutureWarning: We've integrated functorch into PyTorch. As the final step of the integration, `functorch.vmap` is deprecated as of PyTorch 2.0 and will be deleted in a future version of PyTorch >= 2.3. Please use `torch.vmap` instead; see the PyTorch 2.0 release notes and/or the `torch.func` migration guide for more details https://pytorch.org/docs/main/func.migrating.html\n",
+            "  monte_carlo_vect_ndcg = vmap(vect_normalized_discounted_cumulative_gain, in_dims=(0,))\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Load all necessary packages\n",
+        "import sys\n",
+        "sys.path.insert(1, \"../\")\n",
+        "\n",
+        "import numpy as np\n",
+        "np.random.seed(0)\n",
+        "\n",
+        "import pandas as pd\n",
+        "\n",
+        "from aif360.datasets import GermanDataset, StandardDataset\n",
+        "from aif360.metrics import BinaryLabelDatasetMetric\n",
+        "from aif360.algorithms.preprocessing import Reweighing\n",
+        "\n",
+        "from IPython.display import Markdown, display\n",
+        "\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\", category=FutureWarning)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Connect to your Google Drive\n",
+        "from google.colab import drive\n",
+        "drive.mount('/content/gdrive')\n",
+        "\n",
+        "DATADIR = \"gdrive/MyDrive/Shared/ChallengeActivity/GermanDataset/\""
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ztZtokdfQWO8",
+        "outputId": "82b9950a-a828-4236-c8a4-2181e019fa9d"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Drive already mounted at /content/gdrive; to attempt to forcibly remount, call drive.mount(\"/content/gdrive\", force_remount=True).\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!wget -q https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data -P gdrive/MyDrive/Shared/ChallengeActivity/GermanDataset/\n",
+        "!wget -q https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.doc -P gdrive/MyDrive/Shared/ChallengeActivity/GermanDataset/"
+      ],
+      "metadata": {
+        "id": "DZ6BB1HmQwv9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 2 Load dataset, specifying protected attribute, and split dataset into train and test\n",
+        "In Step 2 we load the initial dataset, setting the protected attribute to be age. We then splits the original dataset into training and testing datasets. Although we will use only the training dataset in this tutorial, a normal workflow would also use a test dataset for assessing the efficacy (accuracy, fairness, etc.) during the development of a machine learning model. Finally, we set two variables (to be used in Step 3) for the privileged (1) and unprivileged (0) values for the age attribute. These are key inputs for detecting and mitigating bias, which will be Step 3 and Step 4."
+      ],
+      "metadata": {
+        "id": "SgXBegFFOqLI"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "DATAPATH = \"/content/gdrive/MyDrive/Shared/ChallengeActivity/GermanDataset/german.data\"\n",
+        "\n",
+        "column_names = ['status', 'month', 'credit_history',\n",
+        "                'purpose', 'credit_amount', 'savings', 'employment',\n",
+        "                'investment_as_income_percentage', 'personal_status',\n",
+        "                'other_debtors', 'residence_since', 'property', 'age',\n",
+        "                'installment_plans', 'housing', 'number_of_credits',\n",
+        "                'skill_level', 'people_liable_for', 'telephone',\n",
+        "                'foreign_worker', 'credit']\n",
+        "\n",
+        "df = pd.read_csv(DATAPATH, sep=' ', header=None, names=column_names)\n",
+        "\n",
+        "# this dataset also contains protected attribute for \"sex\" which we do not consider in this evaluation\n",
+        "dataset_orig = StandardDataset(\n",
+        "    df=df,\n",
+        "    label_name='credit',\n",
+        "    categorical_features=['status', 'credit_history', 'purpose',\n",
+        "                     'savings', 'employment', 'other_debtors', 'property',\n",
+        "                     'installment_plans', 'housing', 'skill_level', 'telephone',\n",
+        "                     'foreign_worker'],\n",
+        "    favorable_classes=[1],\n",
+        "    protected_attribute_names=['age'],\n",
+        "    privileged_classes=[lambda x: x >= 25], # age >=25 is considered privileged\n",
+        "    features_to_drop=['personal_status', 'sex'] # ignore sex-related attributes\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "xCUnXp1DWPvA"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dataset_orig_train, dataset_orig_test = dataset_orig.split([0.7], shuffle=True)\n",
+        "\n",
+        "privileged_groups = [{'age': 1}]\n",
+        "unprivileged_groups = [{'age': 0}]"
+      ],
+      "metadata": {
+        "id": "2AvOoWkOXkSg"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 3 Compute fairness metric on original training dataset\n",
+        "Now that we've identified the protected attribute 'age' and defined privileged and unprivileged values, we can use aif360 to detect bias in the dataset. One simple test is to compare the percentage of favorable results for the privileged and unprivileged groups, subtracting the former percentage from the latter. A negative value indicates less favorable outcomes for the unprivileged groups. This is implemented in the method called mean_difference on the BinaryLabelDatasetMetric class. The code below performs this check and displays the output, showing that the difference is -0.115000."
+      ],
+      "metadata": {
+        "id": "x0UfQPPNX6rt"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "metric_orig_train = BinaryLabelDatasetMetric(dataset_orig_train,\n",
+        "                                             unprivileged_groups=unprivileged_groups,\n",
+        "                                             privileged_groups=privileged_groups)\n",
+        "display(Markdown(\"#### Original training dataset\"))\n",
+        "print(\"Difference in mean outcomes between unprivileged and privileged groups = %f\" % metric_orig_train.mean_difference())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 75
+        },
+        "id": "fIm3kogPPfUs",
+        "outputId": "daef12c0-9144-4f77-96fe-b024e840c062"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Markdown object>"
+            ],
+            "text/markdown": "#### Original training dataset"
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Difference in mean outcomes between unprivileged and privileged groups = -0.191371\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 4 Mitigate bias by transforming the original dataset\n",
+        "The previous step showed that the privileged group was getting 17% more positive outcomes in the training dataset. Since this is not desirable, we are going to try to mitigate this bias in the training dataset. As stated above, this is called pre-processing mitigation because it happens before the creation of the model.\n",
+        "\n",
+        "AI Fairness 360 implements several pre-processing mitigation algorithms. We will choose the Reweighing algorithm [1], which is implemented in the Reweighing class in the aif360.algorithms.preprocessing package. This algorithm will transform the dataset to have more equity in positive outcomes on the protected attribute for the privileged and unprivileged groups.\n",
+        "\n",
+        "We then call the fit and transform methods to perform the transformation, producing a newly transformed training dataset (dataset_transf_train).\n",
+        "\n",
+        "[1] F. Kamiran and T. Calders, \"Data Preprocessing Techniques for Classification without Discrimination,\" Knowledge and Information Systems, 2012."
+      ],
+      "metadata": {
+        "id": "PcuaHa1qYONL"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "RW = Reweighing(unprivileged_groups=unprivileged_groups,\n",
+        "                privileged_groups=privileged_groups)\n",
+        "dataset_transf_train = RW.fit_transform(dataset_orig_train)"
+      ],
+      "metadata": {
+        "id": "_Lh04zPXX940"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 5 Compute fairness metric on transformed dataset\n",
+        "Now that we have a transformed dataset, we can check how effective it was in removing bias by using the same metric we used for the original training dataset in Step 3. Once again, we use the function mean_difference in the BinaryLabelDatasetMetric class. We see the mitigation step was very effective, the difference in mean outcomes is now 0.0. So we went from a 12% advantage for the privileged group to equality in terms of mean outcome."
+      ],
+      "metadata": {
+        "id": "nqqy6xP0Yb7o"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "metric_transf_train = BinaryLabelDatasetMetric(dataset_transf_train,\n",
+        "                                               unprivileged_groups=unprivileged_groups,\n",
+        "                                               privileged_groups=privileged_groups)\n",
+        "display(Markdown(\"#### Transformed training dataset\"))\n",
+        "print(\"Difference in mean outcomes between unprivileged and privileged groups = %f\" % metric_transf_train.mean_difference())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 75
+        },
+        "id": "lJEcpsG4YZZd",
+        "outputId": "8fc75d8c-d42a-4061-8b66-dd2459ec4ecb"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.Markdown object>"
+            ],
+            "text/markdown": "#### Transformed training dataset"
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Difference in mean outcomes between unprivileged and privileged groups = -0.000000\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Summary\n",
+        "The purpose of this tutorial is to give a new user to bias detection and mitigation a gentle introduction to some of the functionality of AI Fairness 360. A more complete use case would take the next step and see how the transformed dataset impacts the accuracy and fairness of a trained model. This is implemented in the demo notebook in the examples directory of toolkit, called demo_reweighing_preproc.ipynb (see: https://github.com/Trusted-AI/AIF360/blob/master/examples/demo_reweighing_preproc.ipynb).\n",
+        "\n",
+        "Guideline from AF360: As mentioned earlier, both fairness metrics and mitigation algorithms can be performed at various stages of the machine learning pipeline. We recommend checking for bias as often as possible, using as many metrics are relevant for the application domain. We also recommend incorporating bias detection in an automated continuous integration pipeline to ensure bias awareness as a software project evolves."
+      ],
+      "metadata": {
+        "id": "dNYT_CdcYlMP"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "JCuB1dudYe--"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
